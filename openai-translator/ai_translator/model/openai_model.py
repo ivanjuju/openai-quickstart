@@ -3,13 +3,29 @@ import requests
 import simplejson
 import time
 
-from model import Model
+from tenacity import retry, wait_random_exponential, stop_after_attempt
+
 from utils import LOG
+from model import Model
+
 
 class OpenAIModel(Model):
     def __init__(self, model: str, api_key: str):
         self.model = model
         openai.api_key = api_key
+
+    @retry(wait=wait_random_exponential(multiplier=60, max=60), stop=stop_after_attempt(3))
+    def make_request_by_message(self, messages: list):
+        if not messages:
+            raise Exception("the messages parameter must be specified")
+        if not self.model.startswith("gpt-3.5-turbo") and not self.model.startswith("gpt-4"):
+            raise Exception("GPT model doesn't support calling this method.")
+        response = openai.ChatCompletion.create(
+            model=self.model,
+            messages=messages,
+
+        )
+        return response.choices[0].message['content'].strip(), True
 
     def make_request(self, prompt):
         attempts = 0

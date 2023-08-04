@@ -3,10 +3,13 @@ from enum import Enum, auto
 from PIL import Image as PILImage
 from utils import LOG
 
+
 class ContentType(Enum):
     TEXT = auto()
     TABLE = auto()
     IMAGE = auto()
+    MIXED = auto()
+
 
 class Content:
     def __init__(self, content_type, original, translation=None):
@@ -24,6 +27,8 @@ class Content:
     def check_translation_type(self, translation):
         if self.content_type == ContentType.TEXT and isinstance(translation, str):
             return True
+        elif self.content_type == ContentType.MIXED and isinstance(translation, str):
+            return True
         elif self.content_type == ContentType.TABLE and isinstance(translation, list):
             return True
         elif self.content_type == ContentType.IMAGE and isinstance(translation, PILImage.Image):
@@ -37,8 +42,9 @@ class TableContent(Content):
 
         # Verify if the number of rows and columns in the data and DataFrame object match
         if len(data) != len(df) or len(data[0]) != len(df.columns):
-            raise ValueError("The number of rows and columns in the extracted table data and DataFrame object do not match.")
-        
+            raise ValueError(
+                "The number of rows and columns in the extracted table data and DataFrame object do not match.")
+
         super().__init__(ContentType.TABLE, df)
 
     def set_translation(self, translation, status):
@@ -75,3 +81,10 @@ class TableContent(Content):
 
     def get_original_as_str(self):
         return self.original.to_string(header=False, index=False)
+
+
+class MixedContent(Content):
+    def __init__(self, content_type, original, translation=None):
+        super().__init__(content_type, original, translation)
+        if translation is not None:
+            self.status = True
